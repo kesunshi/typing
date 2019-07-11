@@ -5,20 +5,25 @@
         <div class="card">
           <div class="card-header">
             {{ title }}
-            <span class="badge badge-success">{{ categoryName }}</span>
+            <span class="badge badge-success">{{ category_name }}</span>
           </div>
           <div class="card-body text-center drill-body">
-            <button class="btn tn-primary" @click="doDrill" v-if="!isStarted">START</button>
-            <p v-if="isCountDown" style="font-size:100x;">{{ CountDown }}</p>
+            <button class="btn btn-primary" @click="doDrill" v-if="!isStarted">START</button>
+            <p v-if="isCountDown" style="font-size:100px;">{{ countDownNum }}</p>
             <template v-if="isStarted && !isCountDown && !isEnd">
-              <p>{{ timeNum }}</p>
-              <span :class="{'text-primary': index < currentWordNum}">{{word}}</span>
-              <!-- v-for="(word, index) in problemWords" (上のspanタグに入れる) -->
+              <p>{{ timerNum }}</p>
+              <p class="problem-text">
+                <span
+                  v-for="(word,index) in problemWords"
+                  :class="{'text-primary':index<currentWordNum}"
+                  :key="word.currentProblemNum"
+                >{{word}}</span>
+              </p>
             </template>
 
-            <template>
+            <template v-if="isEnd">
               <p>あなたのスコア</p>
-              <p>{{typeSore}}</p>
+              <p>{{typingScore}}</p>
             </template>
           </div>
         </div>
@@ -28,9 +33,140 @@
 </template>
 
 <script>
+import keyCodeMap from "../master/keymap";
 export default {
-  mounted() {
-    console.log("Component mounted.");
+  props: ["title", "drill", "category_name"],
+  data: function() {
+    return {
+      countDownNum: 3, //カウントダウン用
+      timerNum: 30, //タイマー
+      missNum: 0, //ミス数
+      point: 0, //point
+      isStarted: false, //スタートボタンが押されたらture
+      isEnd: false, //終わったかどうか
+      isCountDown: false, //問題が解答中かどうか
+      currentWordNum: 0, //現在解答中の文字数目（どの問題の何文字目か知る必要があるから）
+      currentProblemNum: 0 //現在の問題番号
+    };
+  },
+  computed: {
+    // 問題テキスト（配列形式）
+    problemWords: function() {
+      return Array.from(this.drill["problem" + this.currentProblemNum]);
+    },
+    // 問題の解答キーコード配列
+    problemKeyCodes: function() {
+      if (!Array.from(this.drill["problem" + this.currentProblemNum]).length) {
+        return null;
+      }
+      // テキストから問題のキーコード配列を生成
+      let problemKeyCodes = [];
+      console.log(Array.from(this.drill["problem" + this.currentProblemNum]));
+      Array.from(this.drill["problem" + this.currentProblemNum]).forEach(
+        text => {
+          $.each(keyCodeMap, (keyText, keyCode) => {
+            if (text === keyText) {
+              problemKeyCodes.push(keyCode);
+            }
+          });
+        }
+      );
+      console.log(problemKeyCodes);
+      return problemKeyCodes;
+    },
+    // 問題の文字数
+    totalWordNum: function() {
+      return this.problemKeyCodes.length;
+    },
+    // タイピングスコア
+    typingScore: function() {
+      return this.point;
+    }
+  },
+  methods: {
+    doDrill: function() {
+      this.isStarted = true;
+      this.countDown();
+    },
+    countDown: function() {
+      // 効果音読み上げ
+      const countSound = new Audio("../sounds/zedd.mp3");
+      const startSound = new Audio("../sounds/zedd.mp3");
+
+      this.isCountDown = true;
+
+      this.soundPlay(countSound);
+
+      let timer = window.setInterval(() => {
+        this.countDownNum -= 1;
+
+        if (this.countDownNum <= 0) {
+          this.isCountDown = false;
+
+          this.soundPlay(startSound);
+
+          window.clearInterval(timer);
+          this.countTimer();
+          this.showFirstProblem();
+
+          return;
+        }
+
+        this.soundPlay(countSound);
+      }, 1000);
+    },
+    showFirstProblem: function() {
+      // 効果音の読み込み
+      const okSound = new Audio("../sounds/zedd.mp3");
+      const ngSound = new Audio("../sounds/zedd.mp3");
+      const nextSound = new Audio("../sounds/zedd.mp3");
+
+      // 入力イベント時に入力キーと解答キーをチェック
+      $(window).on("keyup", e => {
+        console.log(e.which);
+        if (e.which === this.problemKeyCodes[this.currentWordNum]) {
+          console.log("正解！！");
+
+          this.soundPlay(okSound);
+
+          ++this.currentWordNum;
+          ++this.point;
+          console.log("現在解答の文字数目:" + this.currentWordNum);
+
+          // 全文字正解終わったら、次の問題へ
+          if (this.totalWordNum === this.currentWordNum) {
+            console.log("次の問題へ！");
+            ++this.currentProblemNum;
+            this.currentWordNum = 0;
+
+            this.soundPlay(nextSound);
+          }
+        } else {
+          console.log("不正解です。。。");
+          // this.soundPlay(ngSound);
+          ++this.missNum;
+          console.log("現在解答の文字数目:" + this.currentWordNum);
+        }
+      });
+    },
+    soundPlay: function(sound) {
+      sound.currentTime = 0; //audioObject.currentTimeプロパティは、埋め込みオーディオ（audio要素）の再生位置を取得、もしくは、設定するプロパティ。
+      sound.play();
+    },
+    countTimer: function() {
+      // const endSound = new Audio("../sounds/zedd.mp3");
+
+      let timer = window.setInterval(() => {
+        this.timerNum -= 1;
+
+        if (this.timerNum <= 0) {
+          this.isEnd = true;
+
+          window.clearInterval(timer);
+          // endSound.play();
+        }
+      }, 1000);
+    }
   }
 };
 </script>

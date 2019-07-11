@@ -1838,6 +1838,7 @@ module.exports = {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
+/* harmony import */ var _master_keymap__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../master/keymap */ "./resources/js/master/keymap.js");
 //
 //
 //
@@ -1869,9 +1870,153 @@ __webpack_require__.r(__webpack_exports__);
 //
 //
 //
+//
+//
+//
+
 /* harmony default export */ __webpack_exports__["default"] = ({
-  mounted: function mounted() {
-    console.log("Component mounted.");
+  props: ["title", "drill", "category_name"],
+  data: function data() {
+    return {
+      countDownNum: 3,
+      //カウントダウン用
+      timerNum: 30,
+      //タイマー
+      missNum: 0,
+      //ミス数
+      point: 0,
+      //point
+      isStarted: false,
+      //スタートボタンが押されたらture
+      isEnd: false,
+      //終わったかどうか
+      isCountDown: false,
+      //問題が解答中かどうか
+      currentWordNum: 0,
+      //現在解答中の文字数目（どの問題の何文字目か知る必要があるから）
+      currentProblemNum: 0 //現在の問題番号
+
+    };
+  },
+  computed: {
+    // 問題テキスト（配列形式）
+    problemWords: function problemWords() {
+      return Array.from(this.drill["problem" + this.currentProblemNum]);
+    },
+    // 問題の解答キーコード配列
+    problemKeyCodes: function problemKeyCodes() {
+      if (!Array.from(this.drill["problem" + this.currentProblemNum]).length) {
+        return null;
+      } // テキストから問題のキーコード配列を生成
+
+
+      var problemKeyCodes = [];
+      console.log(Array.from(this.drill["problem" + this.currentProblemNum]));
+      Array.from(this.drill["problem" + this.currentProblemNum]).forEach(function (text) {
+        $.each(_master_keymap__WEBPACK_IMPORTED_MODULE_0__["default"], function (keyText, keyCode) {
+          if (text === keyText) {
+            problemKeyCodes.push(keyCode);
+          }
+        });
+      });
+      console.log(problemKeyCodes);
+      return problemKeyCodes;
+    },
+    // 問題の文字数
+    totalWordNum: function totalWordNum() {
+      return this.problemKeyCodes.length;
+    },
+    // タイピングスコア
+    typingScore: function typingScore() {
+      return this.point;
+    }
+  },
+  methods: {
+    doDrill: function doDrill() {
+      this.isStarted = true;
+      this.countDown();
+    },
+    countDown: function countDown() {
+      var _this = this;
+
+      // 効果音読み上げ
+      var countSound = new Audio("../sounds/zedd.mp3");
+      var startSound = new Audio("../sounds/zedd.mp3");
+      this.isCountDown = true;
+      this.soundPlay(countSound);
+      var timer = window.setInterval(function () {
+        _this.countDownNum -= 1;
+
+        if (_this.countDownNum <= 0) {
+          _this.isCountDown = false;
+
+          _this.soundPlay(startSound);
+
+          window.clearInterval(timer);
+
+          _this.countTimer();
+
+          _this.showFirstProblem();
+
+          return;
+        }
+
+        _this.soundPlay(countSound);
+      }, 1000);
+    },
+    showFirstProblem: function showFirstProblem() {
+      var _this2 = this;
+
+      // 効果音の読み込み
+      var okSound = new Audio("../sounds/zedd.mp3");
+      var ngSound = new Audio("../sounds/zedd.mp3");
+      var nextSound = new Audio("../sounds/zedd.mp3"); // 入力イベント時に入力キーと解答キーをチェック
+
+      $(window).on("keyup", function (e) {
+        console.log(e.which);
+
+        if (e.which === _this2.problemKeyCodes[_this2.currentWordNum]) {
+          console.log("正解！！");
+
+          _this2.soundPlay(okSound);
+
+          ++_this2.currentWordNum;
+          ++_this2.point;
+          console.log("現在解答の文字数目:" + _this2.currentWordNum); // 全文字正解終わったら、次の問題へ
+
+          if (_this2.totalWordNum === _this2.currentWordNum) {
+            console.log("次の問題へ！");
+            ++_this2.currentProblemNum;
+            _this2.currentWordNum = 0;
+
+            _this2.soundPlay(nextSound);
+          }
+        } else {
+          console.log("不正解です。。。"); // this.soundPlay(ngSound);
+
+          ++_this2.missNum;
+          console.log("現在解答の文字数目:" + _this2.currentWordNum);
+        }
+      });
+    },
+    soundPlay: function soundPlay(sound) {
+      sound.currentTime = 0; //audioObject.currentTimeプロパティは、埋め込みオーディオ（audio要素）の再生位置を取得、もしくは、設定するプロパティ。
+
+      sound.play();
+    },
+    countTimer: function countTimer() {
+      var _this3 = this;
+
+      // const endSound = new Audio("../sounds/zedd.mp3");
+      var timer = window.setInterval(function () {
+        _this3.timerNum -= 1;
+
+        if (_this3.timerNum <= 0) {
+          _this3.isEnd = true;
+          window.clearInterval(timer); // endSound.play();
+        }
+      }, 1000);
+    }
   }
 });
 
@@ -37173,7 +37318,7 @@ var render = function() {
           _c("div", { staticClass: "card-header" }, [
             _vm._v("\n          " + _vm._s(_vm.title) + "\n          "),
             _c("span", { staticClass: "badge badge-success" }, [
-              _vm._v(_vm._s(_vm.categoryName))
+              _vm._v(_vm._s(_vm.category_name))
             ])
           ]),
           _vm._v(" "),
@@ -37185,7 +37330,7 @@ var render = function() {
                 ? _c(
                     "button",
                     {
-                      staticClass: "btn tn-primary",
+                      staticClass: "btn btn-primary",
                       on: { click: _vm.doDrill }
                     },
                     [_vm._v("START")]
@@ -37193,32 +37338,42 @@ var render = function() {
                 : _vm._e(),
               _vm._v(" "),
               _vm.isCountDown
-                ? _c("p", { staticStyle: { "font-size": "100x" } }, [
-                    _vm._v(_vm._s(_vm.CountDown))
+                ? _c("p", { staticStyle: { "font-size": "100px" } }, [
+                    _vm._v(_vm._s(_vm.countDownNum))
                   ])
                 : _vm._e(),
               _vm._v(" "),
               _vm.isStarted && !_vm.isCountDown && !_vm.isEnd
                 ? [
-                    _c("p", [_vm._v(_vm._s(_vm.timeNum))]),
+                    _c("p", [_vm._v(_vm._s(_vm.timerNum))]),
                     _vm._v(" "),
-                    _vm._l(_vm.problemWords, function(word, index) {
-                      return _c(
-                        "span",
-                        {
-                          class: { "text-primary": index < _vm.currentWordNum }
-                        },
-                        [_vm._v(_vm._s(word))]
-                      )
-                    })
+                    _c(
+                      "p",
+                      { staticClass: "problem-text" },
+                      _vm._l(_vm.problemWords, function(word, index) {
+                        return _c(
+                          "span",
+                          {
+                            key: word.currentProblemNum,
+                            class: {
+                              "text-primary": index < _vm.currentWordNum
+                            }
+                          },
+                          [_vm._v(_vm._s(word))]
+                        )
+                      }),
+                      0
+                    )
                   ]
                 : _vm._e(),
               _vm._v(" "),
-              [
-                _c("p", [_vm._v("あなたのスコア")]),
-                _vm._v(" "),
-                _c("p", [_vm._v(_vm._s(_vm.typeSore))])
-              ]
+              _vm.isEnd
+                ? [
+                    _c("p", [_vm._v("あなたのスコア")]),
+                    _vm._v(" "),
+                    _c("p", [_vm._v(_vm._s(_vm.typingScore))])
+                  ]
+                : _vm._e()
             ],
             2
           )
@@ -49532,6 +49687,108 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "staticRenderFns", function() { return _node_modules_vue_loader_lib_loaders_templateLoader_js_vue_loader_options_node_modules_vue_loader_lib_index_js_vue_loader_options_ExampleComponent_vue_vue_type_template_id_299e239e___WEBPACK_IMPORTED_MODULE_0__["staticRenderFns"]; });
 
 
+
+/***/ }),
+
+/***/ "./resources/js/master/keymap.js":
+/*!***************************************!*\
+  !*** ./resources/js/master/keymap.js ***!
+  \***************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony default export */ __webpack_exports__["default"] = ({
+  "0": 48,
+  "1": 49,
+  "2": 50,
+  "3": 51,
+  "4": 52,
+  "5": 53,
+  "6": 54,
+  "7": 55,
+  "8": 56,
+  "9": 57,
+  "A": 65,
+  "B": 66,
+  "C": 67,
+  "D": 68,
+  "E": 69,
+  "F": 70,
+  "G": 71,
+  "H": 72,
+  "I": 73,
+  "J": 74,
+  "K": 75,
+  "L": 76,
+  "M": 77,
+  "N": 78,
+  "O": 79,
+  "P": 80,
+  "Q": 81,
+  "R": 82,
+  "S": 83,
+  "T": 84,
+  "U": 85,
+  "V": 86,
+  "W": 87,
+  "X": 88,
+  "Y": 89,
+  "Z": 90,
+  "a": 97,
+  "b": 98,
+  "c": 99,
+  "d": 100,
+  "e": 101,
+  "f": 102,
+  "g": 103,
+  "h": 104,
+  "i": 105,
+  "j": 106,
+  "k": 107,
+  "l": 108,
+  "m": 109,
+  "n": 110,
+  "o": 111,
+  "p": 112,
+  "q": 113,
+  "r": 114,
+  "s": 115,
+  "t": 116,
+  "u": 117,
+  "v": 118,
+  "w": 119,
+  "x": 120,
+  "y": 121,
+  "z": 122,
+  "@": 64,
+  "?": 63,
+  ".": 46,
+  ",": 44,
+  "$": 36,
+  "&": 38,
+  "#": 35,
+  "!": 33,
+  "'": 39,
+  "\"": 34,
+  ":": 58,
+  ";": 59,
+  "<": 60,
+  ">": 62,
+  "/": 47,
+  "{": 123,
+  "}": 125,
+  "[": 91,
+  "]": 93,
+  "=": 61,
+  "-": 45,
+  "(": 40,
+  ")": 41,
+  "\\": 92,
+  "+": 43,
+  "_": 95
+});
 
 /***/ }),
 
