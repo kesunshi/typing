@@ -1972,7 +1972,7 @@ __webpack_require__.r(__webpack_exports__);
       var ngSound = new Audio("../sounds/zedd.mp3");
       var nextSound = new Audio("../sounds/zedd.mp3"); // 入力イベント時に入力キーと解答キーをチェック
 
-      $(window).on("keyup", function (e) {
+      $(window).on("keypress", function (e) {
         console.log(e.which);
 
         if (e.which === _this2.problemKeyCodes[_this2.currentWordNum]) {

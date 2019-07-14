@@ -122,7 +122,7 @@ export default {
       const nextSound = new Audio("../sounds/zedd.mp3");
 
       // 入力イベント時に入力キーと解答キーをチェック
-      $(window).on("keyup", e => {
+      $(window).on("keypress", e => {
         console.log(e.which);
         if (e.which === this.problemKeyCodes[this.currentWordNum]) {
           console.log("正解！！");
